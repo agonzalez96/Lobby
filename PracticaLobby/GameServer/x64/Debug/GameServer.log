@@ -1,0 +1,6 @@
+﻿  mainServerTaller6.cpp
+c:\users\alumno\documents\practiquesudp\practiquesudp\gameserver\mainservertaller6.cpp(21): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+c:\users\alumno\documents\practiquesudp\practiquesudp\gameserver\mainservertaller6.cpp(239): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\alumno\documents\practiquesudp\practiquesudp\gameserver\mainservertaller6.cpp(345): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+c:\users\alumno\documents\practiquesudp\practiquesudp\gameserver\mainservertaller6.cpp(346): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+  GameServer.vcxproj -> C:\Users\Alumno\Documents\PractiquesUDP\PractiquesUDP\x64\Debug\GameServer.exe

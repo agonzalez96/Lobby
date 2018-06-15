@@ -1,0 +1,10 @@
+﻿  mainClientTaller6.cpp
+c:\users\alumno\documents\practiquesudp\practiquesudp\gameclient\mainclienttaller6.cpp(20): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\users\alumno\documents\practiquesudp\practiquesudp\gameclient\mainclienttaller6.cpp(21): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\users\alumno\documents\practiquesudp\practiquesudp\gameclient\mainclienttaller6.cpp(219): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+c:\users\alumno\documents\practiquesudp\practiquesudp\gameclient\mainclienttaller6.cpp(368): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+c:\users\alumno\documents\practiquesudp\practiquesudp\gameclient\mainclienttaller6.cpp(376): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+c:\users\alumno\documents\practiquesudp\practiquesudp\gameclient\mainclienttaller6.cpp(382): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+c:\users\alumno\documents\practiquesudp\practiquesudp\gameclient\mainclienttaller6.cpp(383): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+c:\users\alumno\documents\practiquesudp\practiquesudp\gameclient\mainclienttaller6.cpp(188): warning C4101: 'print': unreferenced local variable
+  GameClient.vcxproj -> C:\Users\Alumno\Documents\PractiquesUDP\PractiquesUDP\x64\Debug\GameClient.exe
