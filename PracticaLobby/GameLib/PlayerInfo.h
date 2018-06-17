@@ -32,7 +32,7 @@ struct Player {
 	map<int, Packet> ackList;
 	int IDPacket = 1;
 	int ping;
-	int score = -1;
+	int score = 0;
 	bool win = false;
 	bool sk1Used = false;
 	bool sk2Used = false;

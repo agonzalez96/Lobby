@@ -92,6 +92,7 @@ void receiveData(UdpSocket* socket, vector<Player*>* aPlayers, Player* player1, 
 					Packet critPack;
 					critPack << 3;
 					critPack << player->ID;
+					critPack << player1->worldID;
 					critPack << tmpIDPacket;
 					socket->send(critPack, "localhost", 50000);
 				}
@@ -128,6 +129,7 @@ void receiveData(UdpSocket* socket, vector<Player*>* aPlayers, Player* player1, 
 				Packet ping;
 				ping << 4;
 				ping << player->ID;
+				ping << player1->worldID;
 				socket->send(ping, "localhost", 50000);
 			}
 			else if (type == SUMAMONEDA) {
@@ -145,7 +147,7 @@ void receiveData(UdpSocket* socket, vector<Player*>* aPlayers, Player* player1, 
 			}
 			else if (type == WIN) {
 				ack >> mess;
-				cout << mess;
+				cout << mess << endl;
 				player1->win = true;
 			}
 			else if (type == SKILL_1) {
@@ -174,6 +176,7 @@ void receiveData(UdpSocket* socket, vector<Player*>* aPlayers, Player* player1, 
 				int sendType = 2;
 				mov << sendType;
 				mov << player1->ID;
+				mov << player1->worldID;
 				mov << tempX;
 				mov << tempY;
 				socket->send(mov, "localhost", 50000);
@@ -200,6 +203,11 @@ int main()
 	vector<Player*> aPlayers;
 	vector<int> aWorlds;
 	Coin* coin = new Coin;
+
+	thread t1(&receiveData, &socket, &aPlayers, player, coin, &aWorlds);
+
+	start:
+
 	int movIDPacket = 0;	
 	bool enter = false;
 	char input;
@@ -284,7 +292,6 @@ int main()
 	float millisPassed2 = 0.0f;
 	clock_t startTime2 = clock();
 
-	thread t1(&receiveData, &socket, &aPlayers, player, coin, &aWorlds);
 
 	Socket::Status status = socket.send(conn, "localhost", 50000);
 	while (player->start != true) {
@@ -318,15 +325,22 @@ int main()
 			socket.send(enterGame, "localhost", 50000);
 			listShowed = true;
 		}
-		else cout << "There are no games";
+		else {
+			cout << "There are no games" << endl;
+			goto start;
+		}
 	}
 
 	sf::Vector2f casillaOrigen, casillaDestino;
 
 	sf::RenderWindow window(sf::VideoMode(640, 640), "UDP");
 
-	while (window.isOpen() || !player->win)
+	while (window.isOpen())
 	{
+		if (player->win) {
+			goto start;
+			player->win = false;
+		}
 		sf::Event event;
 
 		while (window.pollEvent(event))
@@ -338,6 +352,7 @@ int main()
 				type = 1;
 				disc << type;
 				disc << player->ID;
+				disc << player->worldID;
 				socket.send(disc, "localhost", 50000);
 				break;
 
@@ -406,6 +421,7 @@ int main()
 						Packet sk;
 						type = 5;
 						sk << type;
+						sk << player->worldID;
 						socket.send(sk, "localhost", 50000);
 						player->sk1Used = true;
 						break;
@@ -418,6 +434,7 @@ int main()
 						type = 6;
 						sk << type;
 						sk << player->ID;
+						sk << player->worldID;
 						socket.send(sk, "localhost", 50000);
 						player->sk2Used = true;
 						break;
@@ -451,6 +468,7 @@ int main()
 			Packet mov;
 			type = 7;
 			mov << type;
+			mov << player->worldID;
 			mov << movIDPacket;
 			mov << player->ID;
 			mov << player->tmpposX;

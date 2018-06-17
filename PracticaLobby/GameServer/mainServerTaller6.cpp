@@ -255,19 +255,18 @@ int main()
 			//Marxa un jugador
 			else if (recType == DESCONNEXIO) {
 				conn >> discID;
-				for (map<int, World>::iterator it = worldManager.begin(); it != worldManager.end(); ++it) {
-					for (int i = 0; i < it->second.aPlayers.size(); i++) {
-						if (discID == it->second.aPlayers[i]->ID) {
-							it->second.aPlayers.erase(aPlayers.begin() + i);
-						}
+				conn >> tmpIDWorld;
+				for (int i = 0; i < worldManager[tmpIDWorld].aPlayers.size(); i++) {
+					if (discID == worldManager[tmpIDWorld].aPlayers[i]->ID) {
+						worldManager[tmpIDWorld].aPlayers.erase(worldManager[tmpIDWorld].aPlayers.begin() + i);
 					}
-					Packet newInfo;
-					sendType = 2;
-					newInfo << sendType;
-					newInfo << discID;
-					for (int i = 0; i < it->second.aPlayers.size(); i++) {
-						socket.send(newInfo, it->second.aPlayers[i]->senderIP, it->second.aPlayers[i]->senderPort);
-					}
+				}
+				Packet newInfo;
+				sendType = 2;
+				newInfo << sendType;
+				newInfo << discID;
+				for (int i = 0; i < worldManager[tmpIDWorld].aPlayers.size(); i++) {
+					socket.send(newInfo, worldManager[tmpIDWorld].aPlayers[i]->senderIP, worldManager[tmpIDWorld].aPlayers[i]->senderPort);
 				}
 				recType = -1;
 			}
@@ -275,25 +274,27 @@ int main()
 			//Es  mou un jugador
 			else if (recType == MOVIMENT) {
 				conn >> movID;
+				conn >> tmpIDWorld;
 				Packet newInfo;
 				sendType = 3;
 				newInfo << sendType;
-				for (int i = 0; i < aPlayers.size(); i++) {
-					if (movID == aPlayers[i]->ID) {
+				for (int i = 0; i < worldManager[tmpIDWorld].aPlayers.size(); i++) {
+					if (movID == worldManager[tmpIDWorld].aPlayers[i]->ID) {
 						conn >> movX;
 						conn >> movY;
-						aPlayers[i]->posX = movX;
-						aPlayers[i]->posY = movY;
-						newInfo << aPlayers[i]->ID;
-						newInfo << aPlayers[i]->posX;
-						newInfo << aPlayers[i]->posY;
-						worldManager[worldID].aPlayers[i]->movAccum[worldManager[worldID].accumID] = newInfo;
-						worldManager[worldID].accumID++;
+						worldManager[tmpIDWorld].aPlayers[i]->posX = movX;
+						worldManager[tmpIDWorld].aPlayers[i]->posY = movY;
+						newInfo << worldManager[tmpIDWorld].aPlayers[i]->ID;
+						newInfo << worldManager[tmpIDWorld].aPlayers[i]->posX;
+						newInfo << worldManager[tmpIDWorld].aPlayers[i]->posY;
+						worldManager[tmpIDWorld].aPlayers[i]->movAccum[worldManager[tmpIDWorld].accumID] = newInfo;
+						worldManager[tmpIDWorld].accumID++;
 					}
 				}
 				recType = -1;
 			}
 			if (recType == MOVACK) {
+				conn >> tmpIDWorld;
 				conn >> movIDPacket;
 				int tmpX, tmpY;
 				conn >> tmpID;
@@ -309,10 +310,10 @@ int main()
 					movAck << tmpY;
 				}
 				else {
-					for (int i = 0; i < aPlayers.size(); i++) {
-						if (aPlayers[i]->ID == tmpID) {
-							movAck << aPlayers[i]->posX;
-							movAck << aPlayers[i]->posY;
+					for (int i = 0; i < worldManager[tmpIDWorld].aPlayers.size(); i++) {
+						if (worldManager[tmpIDWorld].aPlayers[i]->ID == tmpID) {
+							movAck << worldManager[tmpIDWorld].aPlayers[i]->posX;
+							movAck << worldManager[tmpIDWorld].aPlayers[i]->posY;
 						}
 					}
 				}
@@ -322,11 +323,12 @@ int main()
 			//Critical packet ACK
 			else if (recType == ACK_CRITICAL_PACKET) {
 				conn >> tmpID;
+				conn >> tmpIDWorld;
 				conn >> tmpIDPacket;
 
 				for (int i = 0; i < aPlayers.size(); i++) {
-					if (aPlayers[i]->ID == tmpID) {
-						aPlayers[i]->ackList.erase(tmpIDPacket);
+					if (worldManager[tmpIDWorld].aPlayers[i]->ID == tmpID) {
+						worldManager[tmpIDWorld].aPlayers[i]->ackList.erase(tmpIDPacket);
 					}
 				}
 				recType = -1;
@@ -335,9 +337,10 @@ int main()
 			//PING reset
 			else if (recType == PING_RESET) {
 				conn >> tmpID;
-				for (int i = 0; i < aPlayers.size(); i++) {
-					if (aPlayers[i]->ID == tmpID) {
-						aPlayers[i]->ping = 0;
+				conn >> tmpIDWorld;
+				for (int i = 0; i < worldManager[tmpIDWorld].aPlayers.size(); i++) {
+					if (worldManager[tmpIDWorld].aPlayers[i]->ID == tmpID) {
+						worldManager[tmpIDWorld].aPlayers[i]->ping = 0;
 					}
 				}
 				recType = -1;
@@ -345,15 +348,16 @@ int main()
 
 			//Skill Move Positions
 			else if (recType == SKILL1) {
-				worldManager[worldID].coin->posX = rand() % 587;
-				worldManager[worldID].coin->posY = rand() % 587;
+				conn >> tmpIDWorld;
+				worldManager[tmpIDWorld].coin->posX = rand() % 587;
+				worldManager[tmpIDWorld].coin->posY = rand() % 587;
 				Packet newInfo;
 				sendType = 7;
 				newInfo << sendType;
-				newInfo << worldManager[worldID].coin->posX;
-				newInfo << worldManager[worldID].coin->posY;
-				for (int j = 0; j < aPlayers.size(); j++) {
-					socket.send(newInfo, aPlayers[j]->senderIP, aPlayers[j]->senderPort);
+				newInfo << worldManager[tmpIDWorld].coin->posX;
+				newInfo << worldManager[tmpIDWorld].coin->posY;
+				for (int j = 0; j < worldManager[tmpIDWorld].aPlayers.size(); j++) {
+					socket.send(newInfo, worldManager[tmpIDWorld].aPlayers[j]->senderIP, worldManager[tmpIDWorld].aPlayers[j]->senderPort);
 				}
 				recType = -1;
 			}
@@ -361,21 +365,22 @@ int main()
 			//Skill cambiar moneda de posicion
 			else if (recType == SKILL2) {
 				conn >> tmpID;
+				conn >> tmpIDWorld;
 				int tmpX, tmpY;
 				tmpX = rand() % 587;
 				tmpY = rand() % 587;
-				for (int i = 0; i < aPlayers.size(); i++) {
-					if (aPlayers[i]->ID == tmpID) {
-						aPlayers[i]->posX = tmpX;
-						aPlayers[i]->posY = tmpY;
+				for (int i = 0; i < worldManager[tmpIDWorld].aPlayers.size(); i++) {
+					if (worldManager[tmpIDWorld].aPlayers[i]->ID == tmpID) {
+						worldManager[tmpIDWorld].aPlayers[i]->posX = tmpX;
+						worldManager[tmpIDWorld].aPlayers[i]->posY = tmpY;
 						Packet sk;
 						sendType = 8;
 						sk << sendType;
-						sk << aPlayers[i]->ID;
-						sk << aPlayers[i]->posX;
-						sk << aPlayers[i]->posY;
-						for (int j = 0; j < aPlayers.size(); j++) {
-							socket.send(sk, aPlayers[j]->senderIP, aPlayers[j]->senderPort);
+						sk << worldManager[tmpIDWorld].aPlayers[i]->ID;
+						sk << worldManager[tmpIDWorld].aPlayers[i]->posX;
+						sk << worldManager[tmpIDWorld].aPlayers[i]->posY;
+						for (int j = 0; j < worldManager[tmpIDWorld].aPlayers.size(); j++) {
+							socket.send(sk, worldManager[tmpIDWorld].aPlayers[j]->senderIP, worldManager[tmpIDWorld].aPlayers[j]->senderPort);
 						}
 					}
 				}
@@ -389,40 +394,48 @@ int main()
 		}
 
 		//Agafar monedes
-		//for (int i = 0; i < aPlayers.size(); i++) {
-		//	dist = sqrt(pow((worldManager[worldID].coin->posX - aPlayers[i]->posX), 2) + pow((worldManager[worldID].coin->posY - aPlayers[i]->posY), 2));
-		//	if (dist <= RADIO_COIN + RADIO_AVATAR) {
-		//		Packet newInfo;
-		//		worldManager[worldID].coin->posX = rand() % 587;
-		//		worldManager[worldID].coin->posY = rand() % 587;
-		//		aPlayers[i]->score++;
-		//		sendType = 5;
-		//		newInfo << sendType;
-		//		newInfo << worldManager[worldID].coin->posX;
-		//		newInfo << worldManager[worldID].coin->posY;
-		//		newInfo << aPlayers[i]->ID;
-		//		newInfo << aPlayers[i]->score;
-		//		for (int j = 0; j < aPlayers.size(); j++) {
-		//			socket.send(newInfo, aPlayers[j]->senderIP, aPlayers[j]->senderPort);
-		//		}
-		//	}
-		//}
-
-		//Condicio victoria
-		for (int i = 0; i < aPlayers.size(); i++) {
-			if (aPlayers[i]->score == 10) {
-				string victorymes;
-				victorymes = "Player " + to_string(aPlayers[i]->ID) + " wins";
-				Packet victory;
-				sendType = 6;
-				victory << sendType;
-				victory << victorymes;
-				for (int j = 0; j < aPlayers.size(); j++) {
-					socket.send(victory, aPlayers[j]->senderIP, aPlayers[j]->senderPort);
+		for (map<int, World>::iterator it = worldManager.begin(); it != worldManager.end(); ++it) {
+			for (int i = 0; i < it->second.aPlayers.size(); i++) {
+				dist = sqrt(pow((it->second.coin->posX - it->second.aPlayers[i]->posX), 2) + pow((it->second.coin->posY - it->second.aPlayers[i]->posY), 2));
+				if (dist <= RADIO_COIN + RADIO_AVATAR) {
+					Packet newInfo;
+					it->second.coin->posX = rand() % 587;
+					it->second.coin->posY = rand() % 587;
+					it->second.aPlayers[i]->score++;
+					sendType = 5;
+					newInfo << sendType;
+					newInfo << it->second.coin->posX;
+					newInfo << it->second.coin->posY;
+					newInfo << it->second.aPlayers[i]->ID;
+					newInfo << it->second.aPlayers[i]->score;
+					for (int j = 0; j < it->second.aPlayers.size(); j++) {
+						socket.send(newInfo, it->second.aPlayers[j]->senderIP, it->second.aPlayers[j]->senderPort);
+					}
 				}
-				worldManager[worldID].win = true;
 			}
 		}
+		
+
+		//Condicio victoria
+		for (map<int, World>::iterator it = worldManager.begin(); it != worldManager.end(); ++it) {
+			for (int i = 0; i < it->second.aPlayers.size(); i++) {
+				if (it->second.aPlayers[i]->score == it->second.maxCoins) {
+					string victorymes;
+					victorymes = "Player " + to_string(it->second.aPlayers[i]->ID) + " wins";
+					Packet victory;
+					sendType = 6;
+					victory << sendType;
+					victory << victorymes;
+					for (int j = 0; j < it->second.aPlayers.size(); j++) {
+						socket.send(victory, it->second.aPlayers[j]->senderIP, it->second.aPlayers[j]->senderPort);
+					}
+					cout << "game finished" << endl;
+					worldManager.erase(it->first);
+					
+				}
+			}
+		}
+		
 
 
 		//Acumulacio moviment
