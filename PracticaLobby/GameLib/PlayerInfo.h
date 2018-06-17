@@ -41,6 +41,7 @@ struct Player {
 	map<int, Packet> movAccum;
 	int prevX = -1;
 	int prevY = -1;
+	int worldID = -1;
 };
 
 struct Coin {
@@ -49,3 +50,19 @@ struct Coin {
 };
 
 
+class World {
+public:
+	vector<Player*> aPlayers;
+	int tempID = 0;
+	bool win = false;
+	int accumID = 0;
+	Coin* coin = new Coin;
+	bool full = false;
+	int maxPlayers;
+	int maxCoins;
+	int worldid;
+
+	World();
+	~World();
+
+};

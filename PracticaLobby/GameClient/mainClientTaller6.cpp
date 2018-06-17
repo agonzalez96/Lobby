@@ -10,7 +10,7 @@
 #define SKILL_1 7
 #define SKILL_2 8
 #define MOVACK 9
-
+#define LIST_OF_GAMES 10
 using namespace sf;
 using namespace std;
 
@@ -29,7 +29,7 @@ Vector2f BoardToWindows(Vector2f _position)
 	return Vector2f(_position.x*LADO_CASILLA + OFFSET_AVATAR, _position.y*LADO_CASILLA + OFFSET_AVATAR);
 }
 
-void receiveData(UdpSocket* socket, vector<Player*>* aPlayers, Player* player1, Coin* coin1) {
+void receiveData(UdpSocket* socket, vector<Player*>* aPlayers, Player* player1, Coin* coin1, vector<int>* aWorlds) {
 	IpAddress senderIP;
 	unsigned short senderPort;
 	Packet ack;
@@ -41,6 +41,7 @@ void receiveData(UdpSocket* socket, vector<Player*>* aPlayers, Player* player1, 
 	int Xinter, Yinter;
 	int tmpIDPacket, movIDPacket;
 	int tmpScore;
+	int worldSize;
 	Player* player = new Player;
 
 	while (true) {
@@ -67,7 +68,10 @@ void receiveData(UdpSocket* socket, vector<Player*>* aPlayers, Player* player1, 
 				ack >> player1->tmpposY;
 				ack >> coin1->posX;
 				ack >> coin1->posY;
-				cout << "ID: " << player->ID << endl;
+				ack >> player1->worldID;
+				cout << "ID: " << player1->ID << endl;
+				cout << "x: " << player1->posX << endl;
+				cout << "y: " << player1->posY << endl;
 				player1->start = true;
 			}
 			else if (type == INICIALITZACIO_VECTOR_PLAYERS) {
@@ -78,6 +82,7 @@ void receiveData(UdpSocket* socket, vector<Player*>* aPlayers, Player* player1, 
 					ack >> player->ID;
 					ack >> player->posX;
 					ack >> player->posY;
+					ack >> player->worldID;
 					aPlayers->push_back(player);
 					cout << "ID: " << player->ID << endl;
 					cout << "posX: " << player->posX << endl;
@@ -173,6 +178,15 @@ void receiveData(UdpSocket* socket, vector<Player*>* aPlayers, Player* player1, 
 				mov << tempY;
 				socket->send(mov, "localhost", 50000);
 			}
+			else if (type == LIST_OF_GAMES) {
+				ack >> worldSize;
+				for (int i = 0; i < worldSize; i++) {
+					int tmpWorld;
+					ack >> tmpWorld;
+					aWorlds->push_back(tmpWorld);
+				}
+				player1->start = true;
+			}
 		}
 	}
 }
@@ -184,13 +198,82 @@ int main()
 	Packet conn, disc;
 	Player* player = new Player;
 	vector<Player*> aPlayers;
+	vector<int> aWorlds;
 	Coin* coin = new Coin;
 	int movIDPacket = 0;	
+	bool enter = false;
+	char input;
+	int input2;
+	bool listShowed = false;
+	int worldSelected = -1;
+
 
 	int type = 0;
 	conn << type;
-	conn << "Holi";
 
+	conn << "Holi";
+	cout << "Would you like to create a new room (press c) or join to one created (press j)?" << endl;
+	while (enter == false)
+	{
+		cin >> input;
+		if (input == 'c') {
+			conn << 0;
+			cout << "How many people do you want to play with? (1-4)" << endl;
+			cin >> input2;
+			if (input2 < 4) {
+				conn << input2;
+				cout << "game created for " << input2 << " players" << endl;
+			}
+			else {
+				conn << 4;
+				cout << "game created for four players" << endl;
+			}
+			cout << "How many coins do you want to get for win?" << endl;
+			cin >> input2;
+			if (input2 > 0) {
+				conn << input2;
+				cout << input2 << " coins for win" << endl;
+			}
+			else {
+				cout << "1 coin for win" << endl;
+				conn << 1;
+			}
+			enter = true;
+			listShowed = true;
+		}
+		else if (input == 'j') {
+			conn << 1;
+			cout << "Do you want to see al games (press a) or filter them (press f)?" << endl;
+			cin >> input;
+			if (input == 'a') {
+				cout << "you will see al games" << endl;
+				conn << 0;
+			}
+			else if (input == 'f') {
+				conn << 1;
+				cout << "How many players? (1-4)" << endl;
+				cin >> input2;
+				if (input2 <= 4) {
+					conn << input2;
+				}
+				else {
+					conn << 4;
+				}
+				cout << "How many coins?" << endl;
+				cin >> input2;
+				conn << input2;
+
+			}
+			else {
+				cout << "you will see al games";
+				conn << 0;
+			}
+			enter = true;
+		}
+		else {
+			cout << "enter a correct input please" << endl;
+		}
+	}
 
 	float secondsPassed = 0.0f;
 	clock_t startTime = clock();
@@ -201,7 +284,7 @@ int main()
 	float millisPassed2 = 0.0f;
 	clock_t startTime2 = clock();
 
-	thread t1(&receiveData, &socket, &aPlayers, player, coin);
+	thread t1(&receiveData, &socket, &aPlayers, player, coin, &aWorlds);
 
 	Socket::Status status = socket.send(conn, "localhost", 50000);
 	while (player->start != true) {
@@ -217,6 +300,25 @@ int main()
 			startTime = clock();
 		}
 		secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
+	}
+	
+
+	while (listShowed == false){
+		if (aWorlds.size() != 0) {
+			Packet enterGame;
+			type = 8;
+			enterGame << type;
+			cout << "List of games" << endl;
+			for (int i = 0; i < aWorlds.size(); i++) {
+				cout << aWorlds[i] << endl;
+			}
+			cout << "select an ID game" << endl;
+			cin >> worldSelected;
+			enterGame << worldSelected;
+			socket.send(enterGame, "localhost", 50000);
+			listShowed = true;
+		}
+		else cout << "There are no games";
 	}
 
 	sf::Vector2f casillaOrigen, casillaDestino;

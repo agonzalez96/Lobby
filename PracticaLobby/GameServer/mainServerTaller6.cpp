@@ -10,6 +10,8 @@
 #define SKILL1 5
 #define SKILL2 6
 #define MOVACK 7
+#define INIT_PLAYER 8
+
 
 
 using namespace sf;
@@ -18,28 +20,25 @@ using namespace std;
 
 int main()
 {
-
 	srand(time(NULL));
+	map<int, World> worldManager;
+	int worldID = 0;
 
 	UdpSocket socket;
 
 	Packet conn;
-	string mes;
-	vector<Player*> aPlayers;
-	int tempID = 0;
 	int sendType = 0;
 	int recType = -1;
-	int discID, movID, movX, movY;
+	int create = -1;
+	int join = -1;
+	bool add = true;
+	string mes;
+	int discID, movID, movX, movY;	
 	int tmpIDPacket, tmpID;
 	float dist;
-	bool win = false;
 	int movIDPacket;
-	int accumID = 0;
-	bool add = true;
-
-	Coin* coin = new Coin;
-	coin->posX = rand() % 587;
-	coin->posY = rand() % 587;
+	int maxCoins, maxPlayers;
+	int tmpIDWorld;
 
 	float secondsPassed = 0.0f;
 	float millisPassed = 0.0f;
@@ -53,8 +52,9 @@ int main()
 
 
 	socket.setBlocking(false);
-	while (win != true) {
+	while (true) {
 		Packet welcome;
+		vector<Player*> aPlayers;
 		sendType = 0;
 		welcome << sendType;
 		welcome << "Welcome";
@@ -65,27 +65,135 @@ int main()
 
 			//Entra nou jugador
 			if (recType == ENTRA_NOU_JUGADOR) {
+			conn >> mes;
+			cout << "IP: " << player->senderIP << endl;
+			cout << "Port: " << player->senderPort << endl;
+			cout << "mensaje: " << mes << endl;
+			conn >> create;
+			if (create == 0) {
+				int tmp;
+				World newWorld;
+				Coin* coin = new Coin;
+				coin->posX = rand() % 587;
+				coin->posY = rand() % 587;
+				worldManager[worldID] = newWorld;
+				conn >> maxPlayers;
+				conn >> maxCoins;
+				worldManager[worldID].maxPlayers = maxPlayers;
+				worldManager[worldID].maxCoins = maxCoins;
+				worldManager[worldID].coin->posX = coin->posX;
+				worldManager[worldID].coin->posY = coin->posY;
+				worldManager[worldID].tempID++;
+				worldManager[worldID].worldid = worldID;
+				player->ID = worldManager[worldID].tempID;
+				player->posX = rand() % 587;
+				player->posY = rand() % 587;
+
+				for (int i = 0; i < aPlayers.size(); i++) { //Si la posicio esta ocupada
+					if (aPlayers[i]->posX == player->posX && aPlayers[i]->posY == player->posY) {
+						player->posX += 100;
+						player->posY += 100;
+					}
+				}
+				welcome << player->ID;
+				welcome << player->posX;
+				welcome << player->posY;
+				welcome << player->tmpposX;
+				welcome << player->tmpposY;
+
+				welcome << worldManager[worldID].coin->posX;
+				welcome << worldManager[worldID].coin->posY;
+
+				welcome << worldManager[worldID].worldid;
+
+				socket.send(welcome, player->senderIP, player->senderPort);
+				aPlayers.push_back(player);
+				worldManager[worldID].aPlayers.push_back(player);
+
+				//Fem un packet amb la info de tots els jugadors
+				Packet newInfo;
+				sendType = 1;
+				newInfo << sendType;
+				newInfo << player->ID;  //Per saber quanta gent hi ha
+
+				for (int j = 0; j < worldManager[worldID].aPlayers.size(); j++) {
+					newInfo << worldManager[worldID].aPlayers[j]->ID;
+					newInfo << worldManager[worldID].aPlayers[j]->posX;
+					newInfo << worldManager[worldID].aPlayers[j]->posY;
+					newInfo << worldManager[worldID].worldid;
+					newInfo << worldManager[worldID].aPlayers[j]->IDPacket;
+					worldManager[worldID].aPlayers[j]->ackList[aPlayers[j]->IDPacket] = newInfo;
+					worldManager[worldID].aPlayers[j]->IDPacket++;
+				}
+
+				//Enviem el packet
 				for (int i = 0; i < aPlayers.size(); i++) {
-						if (player->senderPort == aPlayers[i]->senderPort) {
-							welcome << aPlayers[i]->ID;
-							welcome << aPlayers[i]->posX;
-							welcome << aPlayers[i]->posY;
-							welcome << coin->posX;
-							welcome << coin->posY;
-							socket.send(welcome, player->senderIP, player->senderPort);
-							add = false;
-						}
-						else {
-							add = true;
+					socket.send(newInfo, worldManager[worldID].aPlayers[i]->senderIP, worldManager[worldID].aPlayers[i]->senderPort);
+				}
+				worldID++;
+
+			}
+			else if (create == 1) {
+				conn >> join;
+				if (join == 0) {
+					Packet games;
+					games << 10;
+					games << worldID;;
+					for (map<int, World>::iterator it = worldManager.begin(); it != worldManager.end(); ++it) {
+						games << it->second.worldid;
+					}
+					socket.send(games, player->senderIP, player->senderPort);
+				}
+				else if (join != 0) {
+					Packet games;
+					games << 10;
+					conn >> maxPlayers;
+					conn >> maxCoins;
+					int size = 0;
+					for (map<int, World>::iterator it = worldManager.begin(); it != worldManager.end(); ++it) {
+						if (it->second.maxCoins == maxCoins) {
+							if (it->second.maxPlayers == maxPlayers) {
+								size++;
+							}
 						}
 					}
+					games << size;
+					for (map<int, World>::iterator it = worldManager.begin(); it != worldManager.end(); ++it) {
+						if (it->second.maxCoins == maxCoins) {
+							if (it->second.maxPlayers == maxPlayers) {
+								games << it->second.worldid;
+							}
+						}
+					}
+					socket.send(games, player->senderIP, player->senderPort);
+				}
+			}						
+			recType = -1;
+		}
+
+			else if (recType == INIT_PLAYER) {
+				conn >> tmpIDWorld;
+				for (int i = 0; i < worldManager[tmpIDWorld].aPlayers.size(); i++) {
+					if (player->senderPort == aPlayers[i]->senderPort) {
+						welcome << aPlayers[i]->ID;
+						welcome << aPlayers[i]->posX;
+						welcome << aPlayers[i]->posY;
+						welcome << worldManager[tmpIDWorld].coin->posX;
+						welcome << worldManager[tmpIDWorld].coin->posY;
+						socket.send(welcome, player->senderIP, player->senderPort);
+						add = false;
+					}
+					else {
+						add = true;
+					}
+				}
 				if (add == true) {
-					tempID++;
-					player->ID = tempID;
+					worldManager[tmpIDWorld].tempID++;
+					player->ID = worldManager[tmpIDWorld].tempID;
 					player->posX = rand() % 587;
 					player->posY = rand() % 587;
 
-					for (int i = 0; i < aPlayers.size(); i++) { //Si la posicio esta ocupada
+					for (int i = 0; i < worldManager[tmpIDWorld].aPlayers.size(); i++) { //Si la posicio esta ocupada
 						if (aPlayers[i]->posX == player->posX && aPlayers[i]->posY == player->posY) {
 							player->posX += 100;
 							player->posY += 100;
@@ -94,15 +202,20 @@ int main()
 					welcome << player->ID;
 					welcome << player->posX;
 					welcome << player->posY;
-					welcome << coin->posX;
-					welcome << coin->posY;
+
+					welcome << worldManager[worldID].coin->posX;
+					welcome << worldManager[worldID].coin->posY;
+
+					welcome << worldManager[worldID].worldid;
+
 					socket.send(welcome, player->senderIP, player->senderPort);
 					aPlayers.push_back(player);
-				 }
-				//Creem packet amb la posicio del jugador i fem un send
-				conn >> mes;
-				
-
+					worldManager[worldID].aPlayers.push_back(player);
+					for (int i = 0; i < worldManager[worldID].aPlayers.size(); i++) {
+						cout << "hi" << endl;
+						cout << worldManager[worldID].aPlayers[i]->ID << endl;
+					}
+				}
 				cout << "IP: " << player->senderIP << endl;
 				cout << "Port: " << player->senderPort << endl;
 				cout << "mensaje: " << mes << endl;
@@ -113,40 +226,39 @@ int main()
 				newInfo << sendType;
 				newInfo << player->ID;  //Per saber quanta gent hi ha
 
-				for (int j = 0; j < aPlayers.size(); j++) {
-					newInfo << aPlayers[j]->ID;
-					newInfo << aPlayers[j]->posX;
-					newInfo << aPlayers[j]->posY;
-					newInfo << aPlayers[j]->IDPacket;
-					aPlayers[j]->ackList[aPlayers[j]->IDPacket] = newInfo;
-					aPlayers[j]->IDPacket++;
+				for (int j = 0; j < worldManager[worldID].aPlayers.size(); j++) {
+					newInfo << worldManager[worldID].aPlayers[j]->ID;
+					newInfo << worldManager[worldID].aPlayers[j]->posX;
+					newInfo << worldManager[worldID].aPlayers[j]->posY;
+					newInfo << worldManager[worldID].worldid;
+					newInfo << worldManager[worldID].aPlayers[j]->IDPacket;
+					worldManager[worldID].aPlayers[j]->ackList[aPlayers[j]->IDPacket] = newInfo;
+					worldManager[worldID].aPlayers[j]->IDPacket++;
 				}
 
 				//Enviem el packet
 				for (int i = 0; i < aPlayers.size(); i++) {
-					socket.send(newInfo, aPlayers[i]->senderIP, aPlayers[i]->senderPort);
-
-
+					socket.send(newInfo, worldManager[worldID].aPlayers[i]->senderIP, worldManager[worldID].aPlayers[i]->senderPort);
 				}
-				recType = -1;
 			}
 
 			//Marxa un jugador
 			else if (recType == DESCONNEXIO) {
 				conn >> discID;
-				for (int i = 0; i < aPlayers.size(); i++) {
-					if (discID == aPlayers[i]->ID) {
-						aPlayers.erase(aPlayers.begin() + i);
+				for (map<int, World>::iterator it = worldManager.begin(); it != worldManager.end(); ++it) {
+					for (int i = 0; i < it->second.aPlayers.size(); i++) {
+						if (discID == it->second.aPlayers[i]->ID) {
+							it->second.aPlayers.erase(aPlayers.begin() + i);
+						}
+					}
+					Packet newInfo;
+					sendType = 2;
+					newInfo << sendType;
+					newInfo << discID;
+					for (int i = 0; i < it->second.aPlayers.size(); i++) {
+						socket.send(newInfo, it->second.aPlayers[i]->senderIP, it->second.aPlayers[i]->senderPort);
 					}
 				}
-				Packet newInfo;
-				sendType = 2;
-				newInfo << sendType;
-				newInfo << discID;
-				for (int i = 0; i < aPlayers.size(); i++) {
-					socket.send(newInfo, aPlayers[i]->senderIP, aPlayers[i]->senderPort);
-				}
-
 				recType = -1;
 			}
 
@@ -165,8 +277,8 @@ int main()
 						newInfo << aPlayers[i]->ID;
 						newInfo << aPlayers[i]->posX;
 						newInfo << aPlayers[i]->posY;
-						aPlayers[i]->movAccum[accumID] = newInfo;
-						accumID++;
+						worldManager[worldID].aPlayers[i]->movAccum[worldManager[worldID].accumID] = newInfo;
+						worldManager[worldID].accumID++;
 					}
 				}
 				recType = -1;
@@ -223,13 +335,13 @@ int main()
 
 			//Skill Move Positions
 			else if (recType == SKILL1) {
-				coin->posX = rand() % 587;
-				coin->posY = rand() % 587;
+				worldManager[worldID].coin->posX = rand() % 587;
+				worldManager[worldID].coin->posY = rand() % 587;
 				Packet newInfo;
 				sendType = 7;
 				newInfo << sendType;
-				newInfo << coin->posX;
-				newInfo << coin->posY;
+				newInfo << worldManager[worldID].coin->posX;
+				newInfo << worldManager[worldID].coin->posY;
 				for (int j = 0; j < aPlayers.size(); j++) {
 					socket.send(newInfo, aPlayers[j]->senderIP, aPlayers[j]->senderPort);
 				}
@@ -267,24 +379,24 @@ int main()
 		}
 
 		//Agafar monedes
-		for (int i = 0; i < aPlayers.size(); i++) {
-			dist = sqrt(pow((coin->posX - aPlayers[i]->posX), 2) + pow((coin->posY - aPlayers[i]->posY), 2));
-			if (dist <= RADIO_COIN + RADIO_AVATAR) {
-				Packet newInfo;
-				coin->posX = rand() % 587;
-				coin->posY = rand() % 587;
-				aPlayers[i]->score++;
-				sendType = 5;
-				newInfo << sendType;
-				newInfo << coin->posX;
-				newInfo << coin->posY;
-				newInfo << aPlayers[i]->ID;
-				newInfo << aPlayers[i]->score;
-				for (int j = 0; j < aPlayers.size(); j++) {
-					socket.send(newInfo, aPlayers[j]->senderIP, aPlayers[j]->senderPort);
-				}
-			}
-		}
+		//for (int i = 0; i < aPlayers.size(); i++) {
+		//	dist = sqrt(pow((worldManager[worldID].coin->posX - aPlayers[i]->posX), 2) + pow((worldManager[worldID].coin->posY - aPlayers[i]->posY), 2));
+		//	if (dist <= RADIO_COIN + RADIO_AVATAR) {
+		//		Packet newInfo;
+		//		worldManager[worldID].coin->posX = rand() % 587;
+		//		worldManager[worldID].coin->posY = rand() % 587;
+		//		aPlayers[i]->score++;
+		//		sendType = 5;
+		//		newInfo << sendType;
+		//		newInfo << worldManager[worldID].coin->posX;
+		//		newInfo << worldManager[worldID].coin->posY;
+		//		newInfo << aPlayers[i]->ID;
+		//		newInfo << aPlayers[i]->score;
+		//		for (int j = 0; j < aPlayers.size(); j++) {
+		//			socket.send(newInfo, aPlayers[j]->senderIP, aPlayers[j]->senderPort);
+		//		}
+		//	}
+		//}
 
 		//Condicio victoria
 		for (int i = 0; i < aPlayers.size(); i++) {
@@ -298,7 +410,7 @@ int main()
 				for (int j = 0; j < aPlayers.size(); j++) {
 					socket.send(victory, aPlayers[j]->senderIP, aPlayers[j]->senderPort);
 				}
-				win = true;
+				worldManager[worldID].win = true;
 			}
 		}
 

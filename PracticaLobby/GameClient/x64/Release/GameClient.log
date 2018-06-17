@@ -3,14 +3,14 @@ mainClientTaller6.cpp(21): warning C4244: 'initializing': conversion from 'int' 
 mainClientTaller6.cpp(22): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
 mainClientTaller6.cpp(41): warning C4101: 'Xinter': unreferenced local variable
 mainClientTaller6.cpp(41): warning C4101: 'Yinter': unreferenced local variable
-mainClientTaller6.cpp(219): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
-mainClientTaller6.cpp(375): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-mainClientTaller6.cpp(383): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-mainClientTaller6.cpp(389): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
-mainClientTaller6.cpp(390): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
-mainClientTaller6.cpp(391): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
-mainClientTaller6.cpp(182): warning C4101: 'print': unreferenced local variable
+mainClientTaller6.cpp(302): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+mainClientTaller6.cpp(477): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+mainClientTaller6.cpp(485): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+mainClientTaller6.cpp(491): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+mainClientTaller6.cpp(492): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+mainClientTaller6.cpp(493): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+mainClientTaller6.cpp(196): warning C4101: 'print': unreferenced local variable
   Generating code
-  All 387 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  All 451 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
   Finished generating code
-  GameClient.vcxproj -> C:\Users\Alumno\Documents\PractiquesUDP\Pra4ctiquesUDP\PractiquesUDP\x64\Release\GameClient.exe
+  GameClient.vcxproj -> C:\Users\Alumno\Documents\Lobby\PracticaLobby\x64\Release\GameClient.exe
