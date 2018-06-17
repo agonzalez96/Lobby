@@ -11,6 +11,7 @@
 #define SKILL2 6
 #define MOVACK 7
 #define INIT_PLAYER 8
+#define CHAT 9
 
 
 
@@ -142,7 +143,9 @@ int main()
 					games << 10;
 					games << worldID;;
 					for (map<int, World>::iterator it = worldManager.begin(); it != worldManager.end(); ++it) {
-						games << it->second.worldid;
+						if (it->second.aPlayers.size() < it->second.maxPlayers) {
+							games << it->second.worldid;
+						}
 					}
 					socket.send(games, player->senderIP, player->senderPort);
 				}
@@ -155,7 +158,9 @@ int main()
 					for (map<int, World>::iterator it = worldManager.begin(); it != worldManager.end(); ++it) {
 						if (it->second.maxCoins == maxCoins) {
 							if (it->second.maxPlayers == maxPlayers) {
-								size++;
+								if (it->second.aPlayers.size() < it->second.maxPlayers) {
+									size++;
+								}
 							}
 						}
 					}
@@ -163,7 +168,9 @@ int main()
 					for (map<int, World>::iterator it = worldManager.begin(); it != worldManager.end(); ++it) {
 						if (it->second.maxCoins == maxCoins) {
 							if (it->second.maxPlayers == maxPlayers) {
-								games << it->second.worldid;
+								if (it->second.aPlayers.size() < it->second.maxPlayers) {
+									games << it->second.worldid;
+								}	
 							}
 						}
 					}
@@ -326,7 +333,7 @@ int main()
 				conn >> tmpIDWorld;
 				conn >> tmpIDPacket;
 
-				for (int i = 0; i < aPlayers.size(); i++) {
+				for (int i = 0; i < worldManager[tmpIDWorld].aPlayers.size(); i++) {
 					if (worldManager[tmpIDWorld].aPlayers[i]->ID == tmpID) {
 						worldManager[tmpIDWorld].aPlayers[i]->ackList.erase(tmpIDPacket);
 					}
@@ -386,6 +393,18 @@ int main()
 				}
 				recType = -1;
 			}
+
+			else if (recType == CHAT) {
+				string tmpMess;
+				conn >> tmpIDWorld;
+				conn >> tmpMess;
+				Packet mess;
+				mess << 11;
+				mess << tmpMess;
+				for (int j = 0; j < worldManager[tmpIDWorld].aPlayers.size(); j++) {
+					socket.send(mess, worldManager[tmpIDWorld].aPlayers[j]->senderIP, worldManager[tmpIDWorld].aPlayers[j]->senderPort);
+				}
+			}
 			else {
 				//Nothing
 			}
@@ -430,6 +449,7 @@ int main()
 						socket.send(victory, it->second.aPlayers[j]->senderIP, it->second.aPlayers[j]->senderPort);
 					}
 					cout << "game finished" << endl;
+					it->second.aPlayers.clear();
 					worldManager.erase(it->first);
 					
 				}
@@ -440,70 +460,77 @@ int main()
 
 		//Acumulacio moviment
 		if (millisPassed2 > 500) {
-			for (int i = 0; i < aPlayers.size(); i++) {
-				if (aPlayers[i]->movAccum.size() != 0) {
-					for (map<int, Packet>::reverse_iterator it = aPlayers[i]->movAccum.rbegin(); it != aPlayers[i]->movAccum.rend(); ++it) {
-
-						int tmpX2, tmpY2, tmpID2, tmpSendType;
-						it->second >> tmpSendType;
-						it->second >> tmpID2;
-						it->second >> tmpX2;
-						it->second >> tmpY2;
-						if (tmpX2 > 0 && tmpX2 < 587 && tmpY2 > 0 && tmpY2 < 587) {
-							for (int j = 0; j< aPlayers.size(); j++) {
-								socket.send(it->second, aPlayers[j]->senderIP, aPlayers[j]->senderPort);
+			for (map<int, World>::iterator it = worldManager.begin(); it != worldManager.end(); ++it) {
+				for (int i = 0; i < it->second.aPlayers.size(); i++) {
+					if (it->second.aPlayers[i]->movAccum.size() != 0) {
+						for (map<int, Packet>::reverse_iterator it2 = it->second.aPlayers[i]->movAccum.rbegin(); it2 != it->second.aPlayers[i]->movAccum.rend(); ++it2) {
+							int tmpX2, tmpY2, tmpID2, tmpSendType;
+							it2->second >> tmpSendType;
+							it2->second >> tmpID2;
+							it2->second >> tmpX2;
+							it2->second >> tmpY2;
+							if (tmpX2 > 0 && tmpX2 < 587 && tmpY2 > 0 && tmpY2 < 587) {
+								for (int j = 0; j< it->second.aPlayers.size(); j++) {
+									socket.send(it2->second, it->second.aPlayers[j]->senderIP, it->second.aPlayers[j]->senderPort);
+								}
+								it->second.aPlayers[i]->movAccum.clear();
 							}
-							aPlayers[i]->movAccum.clear();
+
 						}
-						
 					}
 				}
 			}
 			startTime2 = clock();
-
 		}
 
 		//Critical Pakcets 
 		if (millisPassed > 500) {
-			for (int i = 0; i < aPlayers.size(); i++) {
-				if (aPlayers[i]->ackList.size() != 0) {
-					for (map<int, Packet>::iterator it = aPlayers[i]->ackList.begin(); it != aPlayers[i]->ackList.end(); ++it) {
-						socket.send(it->second, aPlayers[i]->senderIP, aPlayers[i]->senderPort);
+			for (map<int, World>::iterator it = worldManager.begin(); it != worldManager.end(); ++it) {
+				for (int i = 0; i < it->second.aPlayers.size(); i++) {
+					if (it->second.aPlayers[i]->ackList.size() != 0) {
+						for (map<int, Packet>::iterator it2 = it->second.aPlayers[i]->ackList.begin(); it2 != it->second.aPlayers[i]->ackList.end(); ++it2) {
+							socket.send(it2->second, it->second.aPlayers[i]->senderIP, it->second.aPlayers[i]->senderPort);
+						}
 					}
 				}
 			}
 			msgListStartTime = clock();
-
 		}
 
 		//PING
 		if (secondsPassed > 1) {
+			for (map<int, World>::iterator it = worldManager.begin(); it != worldManager.end(); ++it) {
+				for (int i = 0; i < it->second.aPlayers.size(); i++) {
+					Packet _ping;
+					sendType = 4;
+					_ping << sendType;
+					it->second.aPlayers[i]->ping++;
+					for (int i = 0; i < aPlayers.size(); i++) {
+						socket.send(_ping, it->second.aPlayers[i]->senderIP, it->second.aPlayers[i]->senderPort);
+					}
+				}
+			}
 			startTime = clock();
-			for (int i = 0; i < aPlayers.size(); i++) {
-				Packet _ping;
-				sendType = 4;
-				_ping << sendType;
-				aPlayers[i]->ping++;
-				for (int i = 0; i < aPlayers.size(); i++) {
-					socket.send(_ping, aPlayers[i]->senderIP, aPlayers[i]->senderPort);
-				}
-			}
 		}
 
-		for (int i = 0; i < aPlayers.size(); i++) {
-			if (aPlayers[i]->ping >= 60) {
-				Packet newInfo;
-				sendType = 2;
-				newInfo << sendType;
-				newInfo << aPlayers[i]->ID;;
-				aPlayers.erase(aPlayers.begin() + i);
-				for (int i = 0; i < aPlayers.size(); i++) {
-					socket.send(newInfo, aPlayers[i]->senderIP, aPlayers[i]->senderPort);
+
+		//Si pasen 60s s'elimina al jugador
+		for (map<int, World>::iterator it = worldManager.begin(); it != worldManager.end(); ++it) {
+			for (int i = 0; i < it->second.aPlayers.size(); i++) {
+				if (it->second.aPlayers[i]->ping >= 60) {
+					Packet newInfo;
+					sendType = 2;
+					newInfo << sendType;
+					newInfo << it->second.aPlayers[i]->ID;;
+					it->second.aPlayers.erase(aPlayers.begin() + i);
+					for (int i = 0; i < it->second.aPlayers.size(); i++) {
+						socket.send(newInfo, it->second.aPlayers[i]->senderIP, it->second.aPlayers[i]->senderPort);
+					}
 				}
+
 			}
-
 		}
-
+		
 		secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
 		millisPassed = (clock() - msgListStartTime);
 		millisPassed2 = (clock() - startTime2);

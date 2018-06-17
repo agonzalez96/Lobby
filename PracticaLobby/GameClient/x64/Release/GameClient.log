@@ -1,16 +1,18 @@
 ﻿  mainClientTaller6.cpp
-mainClientTaller6.cpp(21): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-mainClientTaller6.cpp(22): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-mainClientTaller6.cpp(41): warning C4101: 'Xinter': unreferenced local variable
-mainClientTaller6.cpp(41): warning C4101: 'Yinter': unreferenced local variable
-mainClientTaller6.cpp(309): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
-mainClientTaller6.cpp(495): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-mainClientTaller6.cpp(503): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-mainClientTaller6.cpp(509): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
-mainClientTaller6.cpp(510): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
-mainClientTaller6.cpp(511): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
-mainClientTaller6.cpp(199): warning C4101: 'print': unreferenced local variable
+mainClientTaller6.cpp(29): warning C4101: 'Xinter': unreferenced local variable
+mainClientTaller6.cpp(29): warning C4101: 'Yinter': unreferenced local variable
+mainClientTaller6.cpp(306): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+mainClientTaller6.cpp(558): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+mainClientTaller6.cpp(566): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+mainClientTaller6.cpp(577): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+mainClientTaller6.cpp(587): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+mainClientTaller6.cpp(588): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+mainClientTaller6.cpp(589): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+mainClientTaller6.cpp(195): warning C4101: 'print': unreferenced local variable
+mainClientTaller6.cpp(330): warning C4101: 'data': unreferenced local variable
   Generating code
-  All 451 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  0 of 582 functions ( 0.0%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   GameClient.vcxproj -> C:\Users\Alumno\Documents\Lobby\PracticaLobby\x64\Release\GameClient.exe

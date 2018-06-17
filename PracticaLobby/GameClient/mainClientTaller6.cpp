@@ -11,25 +11,13 @@
 #define SKILL_2 8
 #define MOVACK 9
 #define LIST_OF_GAMES 10
+#define CHAT 11
+
 using namespace sf;
 using namespace std;
 
-char tablero[SIZE_TABLERO];
-
-Vector2f TransformaCoordenadaACasilla(int _x, int _y)
-{
-	float xCasilla = _x / LADO_CASILLA;
-	float yCasilla = _y / LADO_CASILLA;
-	Vector2f casilla(xCasilla, yCasilla);
-	return casilla;
-}
-
-Vector2f BoardToWindows(Vector2f _position)
-{
-	return Vector2f(_position.x*LADO_CASILLA + OFFSET_AVATAR, _position.y*LADO_CASILLA + OFFSET_AVATAR);
-}
-
-void receiveData(UdpSocket* socket, vector<Player*>* aPlayers, Player* player1, Coin* coin1, vector<int>* aWorlds) {
+void receiveData(UdpSocket* socket, vector<Player*>* aPlayers, Player* player1, Coin* coin1, vector<int>* aWorlds, vector<string>* aMensajes) {
+	
 	IpAddress senderIP;
 	unsigned short senderPort;
 	Packet ack;
@@ -183,12 +171,20 @@ void receiveData(UdpSocket* socket, vector<Player*>* aPlayers, Player* player1, 
 			}
 			else if (type == LIST_OF_GAMES) {
 				ack >> worldSize;
-				for (int i = 0; i < worldSize; i++) {
-					int tmpWorld;
-					ack >> tmpWorld;
-					aWorlds->push_back(tmpWorld);
+				aWorlds->clear();
+				if (worldSize != 0) {
+					for (int i = 0; i < worldSize; i++) {
+						int tmpWorld;
+						ack >> tmpWorld;
+						aWorlds->push_back(tmpWorld);
+					}
+					player1->start = true;
 				}
-				player1->start = true;
+				else cout << "no games avaiable" << endl;
+			}
+			else if (type == CHAT) {
+				ack >> mess;
+				aMensajes->push_back(mess);
 			}
 		}
 	}
@@ -204,312 +200,397 @@ int main()
 	vector<int> aWorlds;
 	Coin* coin = new Coin;
 
-	thread t1(&receiveData, &socket, &aPlayers, player, coin, &aWorlds);
+	vector<string> aMensajes;
 
-	start:
+	thread t1(&receiveData, &socket, &aPlayers, player, coin, &aWorlds, &aMensajes);
 
-	int movIDPacket = 0;	
-	bool enter = false;
-	char input;
-	int input2;
-	bool listShowed = false;
-	int worldSelected = -1;
+	while (true) {
+		int movIDPacket = 0;
+		bool enter = false;
+		char input;
+		int input2;
+		bool listShowed = false;
+		int worldSelected = -1;
 
 
-	int type = 0;
-	conn << type;
+		int type = 0;
+		conn << type;
 
-	conn << "Holi";
-	cout << "Would you like to create a new room (press c) or join to one created (press j)?" << endl;
-	while (enter == false)
-	{
-		cin >> input;
-		if (input == 'c') {
-			conn << 0;
-			cout << "How many people do you want to play with? (1-4)" << endl;
-			cin >> input2;
-			if (input2 < 4) {
-				conn << input2;
-				cout << "game created for " << input2 << " players" << endl;
-			}
-			else {
-				conn << 4;
-				cout << "game created for four players" << endl;
-			}
-			cout << "How many coins do you want to get for win?" << endl;
-			cin >> input2;
-			if (input2 > 0) {
-				conn << input2;
-				cout << input2 << " coins for win" << endl;
-			}
-			else {
-				cout << "1 coin for win" << endl;
-				conn << 1;
-			}
-			enter = true;
-			listShowed = true;
-		}
-		else if (input == 'j') {
-			conn << 1;
-			cout << "Do you want to see al games (press a) or filter them (press f)?" << endl;
+		conn << "Holi";
+		cout << "Would you like to create a new room (press c) or join to one created (press j)?" << endl;
+		while (enter == false)
+		{
 			cin >> input;
-			if (input == 'a') {
-				cout << "you will see al games" << endl;
+			if (input == 'c') {
 				conn << 0;
-			}
-			else if (input == 'f') {
-				conn << 1;
-				cout << "How many players? (1-4)" << endl;
+				cout << "How many people do you want to play with? (1-4)" << endl;
 				cin >> input2;
-				if (input2 <= 4) {
+				if (input2 < 4) {
 					conn << input2;
+					cout << "game created for " << input2 << " players" << endl;
 				}
 				else {
 					conn << 4;
+					cout << "game created for four players" << endl;
 				}
-				cout << "How many coins?" << endl;
+				cout << "How many coins do you want to get for win?" << endl;
 				cin >> input2;
-				conn << input2;
+				if (input2 > 0) {
+					conn << input2;
+					cout << input2 << " coins for win" << endl;
+				}
+				else {
+					cout << "1 coin for win" << endl;
+					conn << 1;
+				}
+				enter = true;
+				listShowed = true;
+			}
+			else if (input == 'j') {
+				conn << 1;
+				cout << "Do you want to see al games (press a) or filter them (press f)?" << endl;
+				cin >> input;
+				if (input == 'a') {
+					cout << "you will see al games" << endl;
+					conn << 0;
+				}
+				else if (input == 'f') {
+					conn << 1;
+					cout << "How many players? (1-4)" << endl;
+					cin >> input2;
+					if (input2 <= 4) {
+						conn << input2;
+					}
+					else {
+						conn << 4;
+					}
+					cout << "How many coins?" << endl;
+					cin >> input2;
+					conn << input2;
 
+				}
+				else {
+					cout << "you will see al games";
+					conn << 0;
+				}
+				enter = true;
 			}
 			else {
-				cout << "you will see al games";
-				conn << 0;
+				cout << "enter a correct input please" << endl;
 			}
-			enter = true;
 		}
-		else {
-			cout << "enter a correct input please" << endl;
+
+		float secondsPassed = 0.0f;
+		clock_t startTime = clock();
+
+		float millisPassed = 0.0f;
+		clock_t msgListStartTime = clock();
+
+		float millisPassed2 = 0.0f;
+		clock_t startTime2 = clock();
+
+
+		Socket::Status status = socket.send(conn, "localhost", 50000);
+		while (player->start != true) {
+			if (secondsPassed > 1.0f) {
+				status = socket.send(conn, "localhost", 50000);
+				if (status != Socket::Done) {
+
+				}
+				else {
+
+				}
+				cout << "holi";
+				startTime = clock();
+			}
+			secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
 		}
-	}
-
-	float secondsPassed = 0.0f;
-	clock_t startTime = clock();
-
-	float millisPassed = 0.0f;
-	clock_t msgListStartTime = clock();
-
-	float millisPassed2 = 0.0f;
-	clock_t startTime2 = clock();
 
 
-	Socket::Status status = socket.send(conn, "localhost", 50000);
-	while (player->start != true) {
-		if (secondsPassed > 1.0f) {
-			status = socket.send(conn, "localhost", 50000);
-			if (status != Socket::Done) {
-
+		while (listShowed == false) {
+			if (aWorlds.size() != 0) {
+				Packet enterGame;
+				type = 8;
+				enterGame << type;
+				cout << "List of games" << endl;
+				for (int i = 0; i < aWorlds.size(); i++) {
+					cout << aWorlds[i] << endl;
+				}
+				cout << "select an ID game" << endl;
+				cin >> worldSelected;
+				enterGame << worldSelected;
+				socket.send(enterGame, "localhost", 50000);
 			}
 			else {
-
+				cout << "There are no games" << endl;
 			}
-			cout << "holi";
-			startTime = clock();
-		}
-		secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
-	}
-	
-
-	while (listShowed == false){
-		if (aWorlds.size() != 0) {
-			Packet enterGame;
-			type = 8;
-			enterGame << type;
-			cout << "List of games" << endl;
-			for (int i = 0; i < aWorlds.size(); i++) {
-				cout << aWorlds[i] << endl;
-			}
-			cout << "select an ID game" << endl;
-			cin >> worldSelected;
-			enterGame << worldSelected;
-			socket.send(enterGame, "localhost", 50000);
 			listShowed = true;
 		}
-		else {
-			cout << "There are no games" << endl;
-			goto start;
-		}
-	}
+		
+		char data[100];
 
-	sf::Vector2f casillaOrigen, casillaDestino;
 
-	sf::RenderWindow window(sf::VideoMode(640, 640), "UDP");
+		sf::Vector2i screenDimensions(800, 600);
 
-	while (window.isOpen())
-	{
-		if (player->win) {
-			goto start;
-			player->win = false;
-		}
-		sf::Event event;
+		sf::RenderWindow window2;
+		window2.create(sf::VideoMode(screenDimensions.x, screenDimensions.y), "Chat");
 
-		while (window.pollEvent(event))
+		sf::Font font;
+		if (!font.loadFromFile("Champagne & Limousines.ttf"))
 		{
-			switch (event.type)
-			{
-			case sf::Event::Closed:
+			std::cout << "Can't load the font file" << std::endl;
+		}
+
+		string mensaje = " >";
+
+		sf::Text chattingText(mensaje, font, 14);
+		chattingText.setFillColor(sf::Color(0, 160, 0));
+		chattingText.setStyle(sf::Text::Bold);
+
+
+		sf::Text text1(mensaje, font, 14);
+		text1.setFillColor(sf::Color(0, 160, 0));
+		text1.setStyle(sf::Text::Bold);
+		text1.setPosition(0, 560);
+
+		sf::RectangleShape separator(sf::Vector2f(800, 5));
+		separator.setFillColor(sf::Color(200, 200, 200, 255));
+		separator.setPosition(0, 550);
+
+		sf::RenderWindow window(sf::VideoMode(640, 640), "UDP");
+
+
+		while (window.isOpen() && window2.isOpen())
+		{
+			if (player->win) {
+				player->win = false;
 				window.close();
-				type = 1;
-				disc << type;
-				disc << player->ID;
-				disc << player->worldID;
-				socket.send(disc, "localhost", 50000);
-				break;
-
-			case sf::Event::KeyPressed:
-				if (Keyboard::isKeyPressed(Keyboard::A)) {
-					if (player->posX > 0 && player->tmpposX > 0) {
-						player->tmpposX -= 5;
-
-						//Prediccio
-						for (int i = 0; i < aPlayers.size(); i++) {
-							if (player->ID == aPlayers[i]->ID) {
-								aPlayers[i]->posX = player->tmpposX;
-							}
-						}
-						break;
-					}
-				}
-
-				//Right
-				if (Keyboard::isKeyPressed(Keyboard::D)) {
-					if (player->posX < 587 && player->tmpposX < 587) {
-						player->tmpposX += 5;
-
-						//Prediccio
-						for (int i = 0; i < aPlayers.size(); i++) {
-							if (player->ID == aPlayers[i]->ID) {
-								aPlayers[i]->posX = player->tmpposX;
-							}
-						}
-						break;
-					}
-				}
-
-				//Up
-				if (Keyboard::isKeyPressed(Keyboard::W)) {
-					if (player->posY > 0 && player->tmpposY > 0) {
-						player->tmpposY -= 5;
-
-						//Prediccio
-						for (int i = 0; i < aPlayers.size(); i++) {
-							if (player->ID == aPlayers[i]->ID) {
-								aPlayers[i]->posY = player->tmpposY;
-							}
-						}
-						break;
-					}
-				}
-
-				//Down
-				if (Keyboard::isKeyPressed(Keyboard::S)) {
-					if (player->posY < 587 && player->tmpposY < 587) {
-						player->tmpposY += 5;
-
-						//Prediccio
-						for (int i = 0; i < aPlayers.size(); i++) {
-							if (player->ID == aPlayers[i]->ID) {
-								aPlayers[i]->posY = player->tmpposY;
-							}
-						}
-						break;
-					}
-
-				}
-				if (Keyboard::isKeyPressed(Keyboard::E)) {
-					if (player->sk1Used == false) {
-						Packet sk;
-						type = 5;
-						sk << type;
-						sk << player->worldID;
-						socket.send(sk, "localhost", 50000);
-						player->sk1Used = true;
-						break;
-					}
-
-				}
-				if (Keyboard::isKeyPressed(Keyboard::Q)) {
-					if (player->sk2Used == false) {
-						Packet sk;
-						type = 6;
-						sk << type;
-						sk << player->ID;
-						sk << player->worldID;
-						socket.send(sk, "localhost", 50000);
-						player->sk2Used = true;
-						break;
-					}
-
-				}
-				else break;
-
-			default:
-				break;
-
 			}
-		}
-
-		//Interpolació
-		if (millisPassed2 > 100) {
-			for (int i = 0; i < aPlayers.size(); i++) {
-				if (aPlayers[i]->ID != player->ID) {
-					int dX = aPlayers[i]->tmpposX - aPlayers[i]->prevX;
-					int dY = aPlayers[i]->tmpposY - aPlayers[i]->prevY;
-						aPlayers[i]->posX += int(dX/5);
-						aPlayers[i]->posY += int(dY/5);
+			sf::Event event;
+			while (window2.pollEvent(event)){
+				Packet message;
+				switch (event.type)
+				{
+				case sf::Event::Closed:
+					window2.close();
+					type = 1;
+					disc << type;
+					disc << player->ID;
+					disc << player->worldID;
+					socket.send(disc, "localhost", 50000);
+					break;
+				case sf::Event::KeyPressed:
+					if (event.key.code == sf::Keyboard::Escape) {
+						window2.close();
+					}
+					else if (event.key.code == sf::Keyboard::Return)
+					{
+						aMensajes.push_back(mensaje);
+						message << 9;
+						message << player->worldID;
+						message << mensaje;
+						socket.send(message, "localhost", 50000);
+						
+						if (aMensajes.size() > 25)
+						{
+							aMensajes.erase(aMensajes.begin(), aMensajes.begin() + 1);
+						}
+						mensaje = " >";
+					}
+					break;
+				case sf::Event::TextEntered:
+					if (event.text.unicode >= 32 && event.text.unicode <= 126)
+						mensaje += (char)event.text.unicode;
+					else if (event.text.unicode == 8 && mensaje.length() > 0)
+						mensaje.erase(mensaje.length() - 1, mensaje.length());
+					break;
+				default:
+					break;
 				}
 			}
+			window2.draw(separator);
 
-			startTime2 = clock();
+			while (window.pollEvent(event))
+			{
+				switch (event.type)
+				{
+				case sf::Event::Closed:
+					window.close();
+					type = 1;
+					disc << type;
+					disc << player->ID;
+					disc << player->worldID;
+					socket.send(disc, "localhost", 50000);
+					break;
+
+				case sf::Event::KeyPressed:
+					if (Keyboard::isKeyPressed(Keyboard::A)) {
+						if (player->posX > 0 && player->tmpposX > 0) {
+							player->tmpposX -= 5;
+
+							//Prediccio
+							for (int i = 0; i < aPlayers.size(); i++) {
+								if (player->ID == aPlayers[i]->ID) {
+									aPlayers[i]->posX = player->tmpposX;
+								}
+							}
+							break;
+						}
+					}
+
+					//Right
+					if (Keyboard::isKeyPressed(Keyboard::D)) {
+						if (player->posX < 587 && player->tmpposX < 587) {
+							player->tmpposX += 5;
+
+							//Prediccio
+							for (int i = 0; i < aPlayers.size(); i++) {
+								if (player->ID == aPlayers[i]->ID) {
+									aPlayers[i]->posX = player->tmpposX;
+								}
+							}
+							break;
+						}
+					}
+
+					//Up
+					if (Keyboard::isKeyPressed(Keyboard::W)) {
+						if (player->posY > 0 && player->tmpposY > 0) {
+							player->tmpposY -= 5;
+
+							//Prediccio
+							for (int i = 0; i < aPlayers.size(); i++) {
+								if (player->ID == aPlayers[i]->ID) {
+									aPlayers[i]->posY = player->tmpposY;
+								}
+							}
+							break;
+						}
+					}
+
+					//Down
+					if (Keyboard::isKeyPressed(Keyboard::S)) {
+						if (player->posY < 587 && player->tmpposY < 587) {
+							player->tmpposY += 5;
+
+							//Prediccio
+							for (int i = 0; i < aPlayers.size(); i++) {
+								if (player->ID == aPlayers[i]->ID) {
+									aPlayers[i]->posY = player->tmpposY;
+								}
+							}
+							break;
+						}
+
+					}
+					if (Keyboard::isKeyPressed(Keyboard::E)) {
+						if (player->sk1Used == false) {
+							Packet sk;
+							type = 5;
+							sk << type;
+							sk << player->worldID;
+							socket.send(sk, "localhost", 50000);
+							player->sk1Used = true;
+							break;
+						}
+
+					}
+					if (Keyboard::isKeyPressed(Keyboard::Q)) {
+						if (player->sk2Used == false) {
+							Packet sk;
+							type = 6;
+							sk << type;
+							sk << player->ID;
+							sk << player->worldID;
+							socket.send(sk, "localhost", 50000);
+							player->sk2Used = true;
+							break;
+						}
+
+					}
+					else break;
+
+				default:
+					break;
+
+				}
+			}
+
+			//Interpolació
+			if (millisPassed2 > 100) {
+				for (int i = 0; i < aPlayers.size(); i++) {
+					if (aPlayers[i]->ID != player->ID) {
+						int dX = aPlayers[i]->tmpposX - aPlayers[i]->prevX;
+						int dY = aPlayers[i]->tmpposY - aPlayers[i]->prevY;
+						aPlayers[i]->posX += int(dX / 5);
+						aPlayers[i]->posY += int(dY / 5);
+					}
+				}
+
+				startTime2 = clock();
+			}
+
+
+			if (millisPassed > 100) {
+				Packet mov;
+				type = 7;
+				mov << type;
+				mov << player->worldID;
+				mov << movIDPacket;
+				mov << player->ID;
+				mov << player->tmpposX;
+				mov << player->tmpposY;
+				//cout << "PosX: " << player->posX << endl;
+				//cout << "PosY: " << player->posY << endl;
+				socket.send(mov, "localhost", 50000);
+				player->listAccum[movIDPacket] = mov;
+				movIDPacket++;
+				msgListStartTime = clock();
+			}
+
+			window.clear();
+
+			//Draw Players
+			CircleShape plCircle(RADIO_AVATAR);
+
+			for (int i = 0; i < aPlayers.size(); ++i) {
+				//	plCircle.setPosition(BoardToWindows(Vector2f(aPlayers[i]->posX, aPlayers[i]->posY)));
+				plCircle.setPosition(Vector2f(aPlayers[i]->posX, aPlayers[i]->posY));
+				if (aPlayers[i]->ID == player->ID) plCircle.setFillColor(sf::Color(255, 0, 0, 255));
+				else plCircle.setFillColor(sf::Color(0, 0, 255, 255));
+				window.draw(plCircle);
+			}
+
+			//DrawCoin
+			CircleShape coinCircle(RADIO_COIN);
+			coinCircle.setPosition(Vector2f(coin->posX, coin->posY));
+			coinCircle.setFillColor(sf::Color(255, 255, 0, 255));
+			window.draw(coinCircle);
+
+			window.display();
+
+
+			//RECEIVE
+			for (int i = 0; i < aMensajes.size(); i++)
+			{
+				std::string chatting = aMensajes[i];
+				chattingText.setPosition(sf::Vector2f(0, 20 * i));
+				chattingText.setString(chatting);
+				window2.draw(chattingText);
+			}
+			std::string mensaje_ = mensaje + "_";
+			text1.setString(mensaje_);
+			window2.draw(text1);
+			window2.display();
+			window2.clear();
+
+			secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
+			millisPassed = (clock() - msgListStartTime);
+			millisPassed2 = (clock() - startTime2);
 		}
-		
-
-		if (millisPassed > 100) {
-			Packet mov;
-			type = 7;
-			mov << type;
-			mov << player->worldID;
-			mov << movIDPacket;
-			mov << player->ID;
-			mov << player->tmpposX;
-			mov << player->tmpposY;
-			//cout << "PosX: " << player->posX << endl;
-			//cout << "PosY: " << player->posY << endl;
-			socket.send(mov, "localhost", 50000);
-			player->listAccum[movIDPacket] = mov;
-			movIDPacket++;
-			msgListStartTime = clock();
-		}
-
-		//Interpolació
-
-		
-
-		window.clear();
-
-		//Draw Players
-		CircleShape plCircle(RADIO_AVATAR);
-
-		for (int i = 0; i < aPlayers.size(); ++i) {
-			//	plCircle.setPosition(BoardToWindows(Vector2f(aPlayers[i]->posX, aPlayers[i]->posY)));
-			plCircle.setPosition(Vector2f(aPlayers[i]->posX, aPlayers[i]->posY));
-			if (aPlayers[i]->ID == player->ID) plCircle.setFillColor(sf::Color(255, 0, 0, 255));
-			else plCircle.setFillColor(sf::Color(0, 0, 255, 255));
-			window.draw(plCircle);
-		}
-
-		//DrawCoin
-		CircleShape coinCircle(RADIO_COIN);
-		coinCircle.setPosition(Vector2f(coin->posX, coin->posY));
-		coinCircle.setFillColor(sf::Color(255, 255, 0, 255));
-		window.draw(coinCircle);
-
-		window.display();
-
-		secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
-		millisPassed = (clock() - msgListStartTime);
-		millisPassed2 = (clock() - startTime2);
 	}
+
+	
 	t1.join();
 	return 0;
 }
