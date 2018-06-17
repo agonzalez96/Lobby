@@ -390,7 +390,7 @@ int main()
 						message << player->worldID;
 						message << mensaje;
 						socket.send(message, "localhost", 50000);
-						
+						aMensajes.pop_back();
 						if (aMensajes.size() > 25)
 						{
 							aMensajes.erase(aMensajes.begin(), aMensajes.begin() + 1);
