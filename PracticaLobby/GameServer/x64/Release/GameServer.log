@@ -1,8 +1,8 @@
 ﻿  mainServerTaller6.cpp
 mainServerTaller6.cpp(23): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
-mainServerTaller6.cpp(484): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
-mainServerTaller6.cpp(485): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
-mainServerTaller6.cpp(486): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+mainServerTaller6.cpp(494): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+mainServerTaller6.cpp(495): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
+mainServerTaller6.cpp(496): warning C4244: '=': conversion from 'clock_t' to 'float', possible loss of data
 mainServerTaller6.cpp(38): warning C4101: 'dist': unreferenced local variable
 mainServerTaller6.cpp(74): warning C4101: 'tmp': unreferenced local variable
   Generating code

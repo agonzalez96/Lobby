@@ -88,6 +88,8 @@ int main()
 				player->ID = worldManager[worldID].tempID;
 				player->posX = rand() % 587;
 				player->posY = rand() % 587;
+				player->tmpposX = player->posX;
+				player->tmpposY = player->posY;
 
 				for (int i = 0; i < aPlayers.size(); i++) { //Si la posicio esta ocupada
 					if (aPlayers[i]->posX == player->posX && aPlayers[i]->posY == player->posY) {
@@ -173,8 +175,10 @@ int main()
 
 			else if (recType == INIT_PLAYER) {
 				conn >> tmpIDWorld;
+
+				//Mirem si el jugador ja existia
 				for (int i = 0; i < worldManager[tmpIDWorld].aPlayers.size(); i++) {
-					if (player->senderPort == aPlayers[i]->senderPort) {
+					if (player->senderPort == worldManager[tmpIDWorld].aPlayers[i]->senderPort) {
 						welcome << aPlayers[i]->ID;
 						welcome << aPlayers[i]->posX;
 						welcome << aPlayers[i]->posY;
@@ -187,14 +191,19 @@ int main()
 						add = true;
 					}
 				}
+
+				//Si no existia el creem
 				if (add == true) {
+					//Creem la info del jugador
 					worldManager[tmpIDWorld].tempID++;
 					player->ID = worldManager[tmpIDWorld].tempID;
 					player->posX = rand() % 587;
 					player->posY = rand() % 587;
+					player->tmpposX = player->posX;
+					player->tmpposY = player->posY;
 
 					for (int i = 0; i < worldManager[tmpIDWorld].aPlayers.size(); i++) { //Si la posicio esta ocupada
-						if (aPlayers[i]->posX == player->posX && aPlayers[i]->posY == player->posY) {
+						if (worldManager[tmpIDWorld].aPlayers[i]->posX == player->posX && worldManager[tmpIDWorld].aPlayers[i]->posY == player->posY) {
 							player->posX += 100;
 							player->posY += 100;
 						}
@@ -203,42 +212,43 @@ int main()
 					welcome << player->posX;
 					welcome << player->posY;
 
-					welcome << worldManager[worldID].coin->posX;
-					welcome << worldManager[worldID].coin->posY;
+					welcome << player->tmpposX;
+					welcome << player->tmpposY;
 
-					welcome << worldManager[worldID].worldid;
+					welcome << worldManager[tmpIDWorld].coin->posX;
+					welcome << worldManager[tmpIDWorld].coin->posY;
 
+					welcome << worldManager[tmpIDWorld].worldid;
+
+					//Enviem info i afegim als vectors
 					socket.send(welcome, player->senderIP, player->senderPort);
 					aPlayers.push_back(player);
-					worldManager[worldID].aPlayers.push_back(player);
-					for (int i = 0; i < worldManager[worldID].aPlayers.size(); i++) {
-						cout << "hi" << endl;
-						cout << worldManager[worldID].aPlayers[i]->ID << endl;
+					worldManager[tmpIDWorld].aPlayers.push_back(player);
+
+					cout << "IP: " << player->senderIP << endl;
+					cout << "Port: " << player->senderPort << endl;
+					cout << "mensaje: " << mes << endl;
+
+					//Fem un packet amb la info de tots els jugadors
+					Packet newInfo;
+					sendType = 1;
+					newInfo << sendType;
+					newInfo << player->ID;  //Per saber quanta gent hi ha
+
+					for (int j = 0; j < worldManager[tmpIDWorld].aPlayers.size(); j++) {
+						newInfo << worldManager[tmpIDWorld].aPlayers[j]->ID;
+						newInfo << worldManager[tmpIDWorld].aPlayers[j]->posX;
+						newInfo << worldManager[tmpIDWorld].aPlayers[j]->posY;
+						newInfo << worldManager[tmpIDWorld].worldid;
+						newInfo << worldManager[tmpIDWorld].aPlayers[j]->IDPacket;
+						worldManager[tmpIDWorld].aPlayers[j]->ackList[worldManager[tmpIDWorld].aPlayers[j]->IDPacket] = newInfo;
+						worldManager[tmpIDWorld].aPlayers[j]->IDPacket++;
 					}
-				}
-				cout << "IP: " << player->senderIP << endl;
-				cout << "Port: " << player->senderPort << endl;
-				cout << "mensaje: " << mes << endl;
 
-				//Fem un packet amb la info de tots els jugadors
-				Packet newInfo;
-				sendType = 1;
-				newInfo << sendType;
-				newInfo << player->ID;  //Per saber quanta gent hi ha
-
-				for (int j = 0; j < worldManager[worldID].aPlayers.size(); j++) {
-					newInfo << worldManager[worldID].aPlayers[j]->ID;
-					newInfo << worldManager[worldID].aPlayers[j]->posX;
-					newInfo << worldManager[worldID].aPlayers[j]->posY;
-					newInfo << worldManager[worldID].worldid;
-					newInfo << worldManager[worldID].aPlayers[j]->IDPacket;
-					worldManager[worldID].aPlayers[j]->ackList[aPlayers[j]->IDPacket] = newInfo;
-					worldManager[worldID].aPlayers[j]->IDPacket++;
-				}
-
-				//Enviem el packet
-				for (int i = 0; i < aPlayers.size(); i++) {
-					socket.send(newInfo, worldManager[worldID].aPlayers[i]->senderIP, worldManager[worldID].aPlayers[i]->senderPort);
+					//Enviem el packet
+					for (int i = 0; i < worldManager[tmpIDWorld].aPlayers.size(); i++) {
+						socket.send(newInfo, worldManager[tmpIDWorld].aPlayers[i]->senderIP, worldManager[tmpIDWorld].aPlayers[i]->senderPort);
+					}
 				}
 			}
 
